@@ -47,19 +47,19 @@ public class PassTwo
                 label = values[1];
                 opcode = values[2];
                 parameters = values[3];
-                
+                /*
+                // code used for looking at line that assembler is on
                 System.out.println(label);
     			System.out.println(opcode);
     			System.out.println(parameters);
     			System.out.println(address);
-    			
+    			/**/
                 if (parameters != null)
                 {
                 	if (Tables.SYMTAB.get(parameters) != null)
                 		parameters = Tables.SYMTAB.get(parameters);
                 }
-                System.out.println(Tables.LABEL.get(opcode));
-                if (Tables.LABEL.get(opcode) != null)
+                if (Tables.LABEL.get(opcode) == null)
                 {
                 	code = generate_code(opcode, parameters, machineArch);
                 	System.out.println(code);
@@ -278,10 +278,7 @@ public class PassTwo
 			b=1 & p=0 Base relative addressing - TA=(B)+disp (0<=disp<=4095)**
 		***/
 		//before concatenation remove the last 2 bits from op
-		/******************************************************************************************************************************************************
-		CHECK LINE BELOW
-		******************************************************************************************************************************************************/
-		System.out.println(op);
+		//System.out.println(op);
 		op = op.substring(0, op.length() - 2);
 		// concatenate Opcode, flags, and Params
 		out = op + n + i + x + b + p + e + params;
@@ -289,7 +286,7 @@ public class PassTwo
 		// convert back to hex
 		ObjCode = binaryToHex(out);
 		// print for testing
-		System.out.println(ObjCode);
+		//System.out.println(ObjCode);
 		// later will write to a file, or send to another function for writing to file
 		return ObjCode;
 	}
@@ -328,18 +325,30 @@ public class PassTwo
 		{
 			return "indirect";
 		}
-/******************************************************************************************************************************************************
-		CHECK ELSE IF STATEMENT BELOW
-******************************************************************************************************************************************************/
-		/**
-		else if (format is LABEL,X) Tables.SYMTAB.get() the first value of the parameter
+		else if (mode.contains(","))
 		{
-			return indexed;
-		}**/
+			if (mode.split(",") != null)
+			{
+				String splitParams[];
+				splitParams = mode.split(",");
+				String char1 = splitParams[0];
+				String char2 = splitParams[1].trim();
+				if (char2.equals("X"))
+				{
+					return "indexed";
+				}
+				else
+				{
+					//System.out.println(params);
+					return "ERROR";
+				}
+			}			
+		}
 		else
 		{
 			return "simple";
 		}
+		return mode;
 		
 	}
 
