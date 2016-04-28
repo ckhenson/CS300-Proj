@@ -96,6 +96,14 @@ public class Tables {
 	put("TIXR", "2");
     }};
 	
+	// Hast table for Data, helps ensure that "opcode" is not identified as data.
+   public static Hashtable<String, String> LABEL = new Hashtable<String, String>() {{
+    	put("RESW", "1");
+    	put("RESB", "1");
+    	put("BYTE", "1");
+    	put("WORD", "1");
+   }};
+   
 	//Register hash table.  It holds all the Register values.
     public static Hashtable<String, String> REG = new Hashtable<String, String>() {{
 	put("A", "0000");
@@ -107,6 +115,17 @@ public class Tables {
 	put("F", "0110");
 	put("PC", "1000");
 	put("SW", "1001");
+	// accounts for spaces in the symbols
+	put(" A", "0000");
+	put(" X", "0001");
+	put(" L", "0010");
+	put(" B", "0011");
+	put(" S", "0100");
+	put(" T", "0101");
+	put(" F", "0110");
+	put(" PC", "1000");
+	put(" SW", "1001");
     }};
+
 	
 }
