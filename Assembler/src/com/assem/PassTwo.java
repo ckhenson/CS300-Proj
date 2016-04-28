@@ -18,7 +18,7 @@ public class PassTwo
 	private static Formatter obj;
 	private static String fileName = "intermediateFile.txt";
 
-    public static void passTwo(String fileName, Int machineArch) {
+    public static void passTwo(String fileName, Integer machineArch) {
 
         //open assembly the file
         openFile();
@@ -35,10 +35,10 @@ public class PassTwo
             String parameters = null;
             String address = null;
 			String code = null;
-
-
+			
             //Setup the values for the current line's address, label, opcode, and parameters if it exists
-            if (!line.trim().isEmpty() && !line.startsWith(".")) {
+            if (!line.trim().isEmpty() && !line.startsWith(".")) 
+            {
 
                 //First setup the values of this line's label, opcode, and parameters
             	
@@ -47,14 +47,24 @@ public class PassTwo
                 label = values[1];
                 opcode = values[2];
                 parameters = values[3];
-		if (parameters != null)
-		{
-			if (Tables.SYMTAB.get(parameters) != null)
-				parameters = Tables.SYMTAB.get(parameters);
-		}
-		code = generate_code(opcode, parameters);
-		System.out.println(code);
-		//writeObjectCode(code);
+                
+                System.out.println(label);
+    			System.out.println(opcode);
+    			System.out.println(parameters);
+    			System.out.println(address);
+    			
+                if (parameters != null)
+                {
+                	if (Tables.SYMTAB.get(parameters) != null)
+                		parameters = Tables.SYMTAB.get(parameters);
+                }
+                System.out.println(Tables.LABEL.get(opcode));
+                if (Tables.LABEL.get(opcode) != null)
+                {
+                	code = generate_code(opcode, parameters, machineArch);
+                	System.out.println(code);
+                }
+			//writeObjectCode(code);
             }
 
         }
@@ -64,7 +74,7 @@ public class PassTwo
 
     }
 	
-	private static String generate_code(String op, String params)
+	private static String generate_code(String op, String params, Integer machineArch)
 	{
 		// filter OPCODE for instruction modes
 		String opFilter = opFilter(op);
@@ -79,35 +89,34 @@ public class PassTwo
 		int b = 0;
 		int p = 0;
 		int e = 0;
-		int r1 = 0;
-		int r2 = 0;
+		String r1 = "";
+		String r2 = "";
 		String out = "";
 		String ObjCode = "";
-		if (opFilter == 1)
+		if (opFilter == "1")
 		{
 			// format 1 is simple, simply return the opcode for the line
 			return op;
 		}
-		else if (opFilter == 2)
+		else if (opFilter == "2")
 		{
 			//convert op to binary
 			op = hexToBin(op);
 			// need to get params to form r1 and r2 from CHAR1,CHAR2
-/******************************************************************************************************************************************************
-		CHECK LINES 100-126
-******************************************************************************************************************************************************/
-			if (params == String.format(params, (%a,%s))
+			if (params.split(",", 2) != null)
 			{
 				// the first string of the parameter will be r1, the second will be r2
-				r1 = a;
-				r2 = s;
+				String param[];
+				param = params.split(",", 2);
+				r1 = param[0];
+				r2 = param[1];
 				// start filtering r1 and r2
-				if (Table.REG.get(r2) != null)
+				if (Tables.REG.get(r2) != null)
 				{
-					r2 = Table.REG.get(r2);
-					if (Table.REG.get(r1) != null)
+					r2 = Tables.REG.get(r2);
+					if (Tables.REG.get(r1) != null)
 					{
-						r1 = Table.REG.get(r1);
+						r1 = Tables.REG.get(r1);
 					}
 					else
 					{
@@ -133,50 +142,121 @@ public class PassTwo
 		// set e to 0 (form 3)
 		// or to 1 (form 4)
 		// then continue
-		else if (opFilter == 3)
+		else if (opFilter == "3")
 		{
 			e = 0;
 		}
-		else if (opFilter == 4)
+		else if (opFilter == "4")
 		{
 			e = 1;
 		}
 		// here is where we have statements for the parameters
-		if (AddressingMode == indirect)
+		if (AddressingMode == "indirect")
 		{
 			x = 0;
 			n = 1;
 			i = 0;
+			p = 1;
 		}
-		else if (AddressingMode == immediate)
+		else if (AddressingMode == "immediate")
 		{
 			x = 0;
 			n = 0;
 			i = 1;
+			p = 1;
 		}
-		else if (AddressingMode == simple)
+		else if (AddressingMode == "simple")
 		{
 			x = 0;
 			//SIC
 			if (machineArch == 0)
 			{
-				n = 0;
-				i = 0;
+				//n = 0;
+				//i = 0;
+				params = hexToBin(params);
+				if (AddressingMode == "indexed")
+				{
+					x = 1;
+					params = String.format("%015d", Integer.parseInt(params));
+					out = op + x + params;
+					// convert back to hex
+					ObjCode = binaryToHex(out);
+					// print for testing
+					System.out.println("indexed");
+					System.out.println(ObjCode);
+					// later will write to a file, or send to another function for writing to file
+					return ObjCode;
+				}
+				else
+				{
+					x = 0;
+					params = String.format("%015d", Integer.parseInt(params));
+					out = op + x + params;
+					// convert back to hex
+					ObjCode = binaryToHex(out);
+					// print for testing
+					System.out.println("not indexed");
+					System.out.println(ObjCode);
+					// later will write to a file, or send to another function for writing to file
+					return ObjCode;
+				}
 			}
 			//SIC/XE
 			else
 			{
 				n = 1;
 				i = 1;
+				p = 1;
 			}	
 		}
-		else if (AddressingMode == indexed)
+		else if (AddressingMode == "indexed")
 		{
 			x = 1;
 		}
 		//convert op and params to binary
 		op = hexToBin(op);
+		op = String.format("%08d", Integer.parseInt(op));
 		// params may need to be filtered, such as for literals and to remove the #, =, and @ symbols
+		if (params.startsWith("#"))
+		{
+			//remove #
+			params = params.substring(1);
+		}
+		else if (params.startsWith("="))
+		{
+			//remove =
+			params = params.substring(1);
+		}
+		else if (params.startsWith("@"))
+		{
+			//remove @
+			params = params.substring(1);
+		}
+		/*
+		*/
+		//Label, X needs to be set up
+		if (params.contains(","))
+		{
+			if (params.split(",") != null)
+			{
+				String splitParam[];
+				splitParam = params.split(",");
+				String char1 = splitParam[0];
+				String char2 = splitParam[1].trim();
+				//System.out.println(char1);
+				//System.out.println(char2);
+				if (char2.equals("X"))
+				{
+					x = 1;
+					params = Tables.SYMTAB.get(char1);
+				}
+				else
+				{
+					//System.out.println(params);
+					return "ERROR";
+				}
+			}			
+		}
 		params = hexToBin(params);
 		// padding for format 3 or format 4, ensures correct length
 		if (e == 0)
@@ -184,7 +264,7 @@ public class PassTwo
 			// format the address for format 3
 			params = String.format("%012d", Integer.parseInt(params));
 		}
-		else if (e = 1)
+		else if (e == 1)
 		{
 			// format the address for format 4
 			params = String.format("%020d", Integer.parseInt(params));
@@ -201,7 +281,8 @@ public class PassTwo
 		/******************************************************************************************************************************************************
 		CHECK LINE BELOW
 		******************************************************************************************************************************************************/
-		op.substring(0,op.length() - 2);
+		System.out.println(op);
+		op = op.substring(0, op.length() - 2);
 		// concatenate Opcode, flags, and Params
 		out = op + n + i + x + b + p + e + params;
 		//System.out.println(out);
@@ -214,18 +295,19 @@ public class PassTwo
 	}
 
 	private static String opFilter(String opcode) {
+		String opFilter;
 		// TODO Auto-generated method stub
 		//filters different opcodes, for different instructions, such as STA, LDA, JLT, COMPR, etc
-		if (Table.OPFORM.get(opcode) != null)
+		if (Tables.OPFORM.get(opcode) != null)
 		{
-			opFilter = Table.OPFORM.get(opcode);
+			opFilter = Tables.OPFORM.get(opcode);
 		}
 		else
 		{
-			opFilter = 3;
+			opFilter = "3";
 			if (opcode.startsWith("+"))
 			{
-				opFilter = 4;
+				opFilter = "4";
 			}
 		}
 		return opFilter;
@@ -233,18 +315,18 @@ public class PassTwo
 
 	private static String filterParamaters(String mode) {
 		// TODO Auto-generated method stub
-		//filters different paramets, such as LABEL,X or Register,Register or #3 and so on
-		if (mode.startsWith("=")
+		//filters different parameters, such as LABEL,X or Register,Register or #3 and so on
+		if (mode.startsWith("="))
 		{
-			return literal; //should this be the label??
+			return "literal"; //should this be the label??
 		}
-		else if (mode.startsWith("#")
+		else if (mode.startsWith("#"))
 		{
-			return immediate;
+			return "immediate";
 		}
-		else if (mode.startsWith("@")
+		else if (mode.startsWith("@"))
 		{
-			return indirect;
+			return "indirect";
 		}
 /******************************************************************************************************************************************************
 		CHECK ELSE IF STATEMENT BELOW
@@ -256,7 +338,7 @@ public class PassTwo
 		}**/
 		else
 		{
-			return simple;
+			return "simple";
 		}
 		
 	}
