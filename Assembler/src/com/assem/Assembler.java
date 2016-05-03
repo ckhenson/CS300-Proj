@@ -12,15 +12,16 @@ public class Assembler {
     private Scanner scan;
     private Formatter inter;
     private int LOCCTR = 0;
-    private static String fileName = "assemblyCode/control_section.txt";
+    private int machineARCH = 0;
+    private static String fileName = "assemblyCode/control_section2.txt";
 
 
     public void passOne() {
 
         //open assembly the file
-        openFile();
+        scan = Utils.openFile(fileName);
         //make the intermediate file that will be passed onto passTwo
-        makeFile();
+        inter = Utils.makeFile("intermediateFile.txt");
 
         //Loop as long as there's more data in the file
         while(scan.hasNext()) {
@@ -44,7 +45,10 @@ public class Assembler {
 
                 //write this line to the intermediate file with the current location converted to hexadecimal
                 //as the address
-                address = toHex(LOCCTR);
+                if (opcode.equals("CSECT"))
+                    address = toHex(0);
+                else
+                    address = toHex(LOCCTR);
                 writeLine(address, label, opcode, parameters);
 
                 //First we have to handle the labels
@@ -56,6 +60,9 @@ public class Assembler {
                         System.out.println("Error! Repeat label " + label + " found in file.");
                 }
 
+                if (Tables.ARCH.get(opcode)!= null){
+                    machineARCH = 1;
+                }
 
                 //Next we need use the opcode to increment the LOCCTR
                 if (opcode != null) {
@@ -68,11 +75,11 @@ public class Assembler {
 
 
         //close the files
-        closeFile();
-        closeInter();
+        Utils.closeFile(scan);
+        Utils.closeFormat(inter);
 
         //start pass two
-        PassTwo.passTwo("intermediateFile.txt");
+        PassTwo.passTwo("intermediateFile.txt", machineARCH);
 
     }
 
@@ -166,32 +173,6 @@ public class Assembler {
         return hex;
     }
 
-    //Readfile functions
-
-    public void openFile() {
-        try{
-            scan = new Scanner(new File(fileName));
-        }
-        catch(Exception e) {
-            System.out.println("could not find this file");
-        }
-    }
-
-    public void closeFile() {
-        scan.close();
-    }
-
-    //Writefile functions
-
-    public void makeFile() {
-        try {
-            inter = new Formatter("intermediateFile.txt");
-        }
-        catch(Exception e) {
-            System.out.println("Failed to create file.");
-        }
-    }
-
     public void writeLine(String address, String label, String opcode, String params) {
         String a;
         String l;
@@ -216,15 +197,11 @@ public class Assembler {
         else
             p = params;
 
-        if (opcode.equals("BASE") || opcode.equals("LTORG") || opcode.equals("CSECT") || opcode.equals("EXTDEF") || opcode.equals("EXTREF")) {
+        if (opcode.equals("BASE") || opcode.equals("LTORG") || opcode.equals("EXTDEF") || opcode.equals("EXTREF")) {
             a = "";
         }
 
         inter.format("%s\u0009%s\u0009%s\u0009%s%n", a, l, o, p);
-    }
-
-    public void closeInter() {
-        inter.close();
     }
 
 }
