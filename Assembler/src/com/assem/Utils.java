@@ -9,6 +9,14 @@ import java.util.Scanner;
  */
 public class Utils {
 
+    public static String toHex(int dec, int digits) {
+        String hex = Integer.toHexString(dec);
+        while (hex.length() < digits)
+            hex = "0" + hex;
+
+        return hex;
+    }
+
     public static Scanner openFile(String fileName){
         try {
             Scanner s = new Scanner(new File(fileName));

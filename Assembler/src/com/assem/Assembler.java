@@ -14,6 +14,7 @@ public class Assembler {
     private int LOCCTR = 0;
     private int machineARCH = 0;
     private static String fileName = "assemblyCode/control_section2.txt";
+    private static String startAddress = "0000";
 
 
     public void passOne() {
@@ -79,7 +80,7 @@ public class Assembler {
         Utils.closeFormat(inter);
 
         //start pass two
-        PassTwo.passTwo("intermediateFile.txt", machineARCH);
+        PassTwo.passTwo("intermediateFile.txt", machineARCH, startAddress);
 
     }
 
@@ -112,6 +113,7 @@ public class Assembler {
 
         if (op.equals("START")) {
             LOCCTR = Integer.parseInt(params);
+            startAddress = Utils.toHex(LOCCTR, 4);
             System.out.print("Starting location is ");
             System.out.println(LOCCTR);
         }

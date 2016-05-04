@@ -28,12 +28,14 @@ public class PassTwo {
     private static String pcLine = "";
 
     private static String address;
+    private static String targetAddress;
     private static String label;
     private static String opcode;
     private static String parameters;
     private static String[] operands;
     private static String objCode;
     private static String PC;
+    private static String BUFFER = "0000";
     private static int addressingMode;
 
     //xbpe
@@ -43,6 +45,9 @@ public class PassTwo {
     private static int e = 0;
     private static int xbpe;
 
+    //
+    private static String startAddress = "0000";
+
     //The decimal and hexadecimal versions of the object code digits
     private static int decimalOP;
     private static String hexOP = "";
@@ -50,12 +55,15 @@ public class PassTwo {
     private static String hexDisp = "";
 
 
-    public static void passTwo(String fileName, int machineArch) {
+    public static void passTwo(String fileName, int machineArch, String SA) {
 
         //Sets up a scanner to read from the intermediate file.
         scan = Utils.openFile("intermediateFile.txt");
         //Set up formatter to make the object code file
         form = Utils.makeFile("objectCode.txt");
+
+        //Set the start address
+        startAddress = SA;
 
         if (machineArch == 0)
             defaultAddressMode = 0;
@@ -108,13 +116,19 @@ public class PassTwo {
                 //Prep the front of the object code.  This will be the opcode + the addressing mode
                 prepFront();
 
+                //get target address
+                targetAddress = getTargetAddress();
+
                 //Calculate the disp for PC addressing
                 if (parameters != null && e == 0 && addressingMode != IMMEDIATE) {
                     if (Tables.SYMTAB.get(parameters) != null) {
-                        hexDisp = calculateDisp(PC, Tables.SYMTAB.get(parameters));
+                        hexDisp = calculateDisp(PC, targetAddress);
                     }
                     else if (operands != null && addressingMode != IMMEDIATE)
                         hexDisp = calculateOperands();
+                }
+                else if (parameters != null && e == 1) {
+                    hexDisp = "0" + calculateDisp(PC, targetAddress);
                 }
 
                 //Get the third bit of the object code.  This is xbpe.
@@ -123,7 +137,7 @@ public class PassTwo {
                 if (mnemonic.equals("CLEAR"))
                     mid = Tables.REGISTERNUMS.get(parameters);
                 else
-                    mid = toHex(xbpe, 1);
+                    mid = Utils.toHex(xbpe, 1);
 
                 //set the object code
                 if (Tables.NOOBJ.get(mnemonic) != null)
@@ -179,15 +193,6 @@ public class PassTwo {
         return vals;
     }
 
-    private static String toHex(int dec, int digits) {
-        String hex = Integer.toHexString(dec);
-        while (hex.length() < digits)
-            hex = "0" + hex;
-
-        return hex;
-
-    }
-
     public static void writeLine(String address, String label, String opcode, String params, String objCode) {
         String a;
         String l;
@@ -239,14 +244,17 @@ public class PassTwo {
         String disp;
         int d;
 
-        int c = Integer.parseInt(current, 16);
-        int t = Integer.parseInt(target, 16);
-        if (c > t)
-            d = 4096 - (c - t);
-        else
-            d = t - c;
-        disp = toHex(d, 3);
-
+        if (e == 1)
+            disp = target;
+        else {
+            int c = Integer.parseInt(current, 16);
+            int t = Integer.parseInt(target, 16);
+            if (c > t)
+                d = 4096 - (c - t);
+            else
+                d = t - c;
+            disp = Utils.toHex(d, 3);
+        }
         return disp;
     }
 
@@ -303,7 +311,7 @@ public class PassTwo {
         }
 
         pcInt = pcInt + addInt;
-        return toHex(pcInt, 4);
+        return Utils.toHex(pcInt, 4);
 
     }
 
@@ -314,19 +322,27 @@ public class PassTwo {
                 p = 0;
                 b = 0;
                 opcode = opcode.substring(1);
-                hexDisp = "0" + Tables.SYMTAB.get(parameters);
+            }
+            if (operands != null) {
+                if (operands.length == 2) {
+                    if (operands[1].equals("X")) {
+                        x = 1;
+                        BUFFER = operands[0];
+                        System.out.println(BUFFER);
+                    }
+                }
             }
             //B4
             if (opcode.equals("CLEAR")) {
                 opcode = Tables.OPTAB.get(opcode);
                 decimalOP = Integer.parseInt(opcode, 16);
-                hexOP = toHex(decimalOP, 2);
+                hexOP = Utils.toHex(decimalOP, 2);
             }
             else if (Tables.OPTAB.get(opcode) != null) {
                 opcode = Tables.OPTAB.get(opcode);
                 decimalOP = Integer.parseInt(opcode, 16);
                 decimalOP += addressingMode;
-                hexOP = toHex(decimalOP, 2);
+                hexOP = Utils.toHex(decimalOP, 2);
             }
             else {
                 //opcode = Tables.MACROTAB.get(opcode);
@@ -341,7 +357,7 @@ public class PassTwo {
                 addressingMode = IMMEDIATE;
                 parameters = parameters.substring(1);
                 decimalDisp = Integer.parseInt(parameters);
-                hexDisp = toHex(decimalDisp, 3);
+                hexDisp = Utils.toHex(decimalDisp, 3);
                 p = 0;
             }
             else if(parameters.startsWith("@")) {
@@ -368,8 +384,20 @@ public class PassTwo {
                 result = Integer.parseInt(operands[0], 16) + Integer.parseInt(operands[0], 16);
             }
         }
-        return toHex(result, 4);
+        return Utils.toHex(result, 4);
 
+    }
+
+    private static String getTargetAddress() {
+        String ta = "";
+        if (parameters != null) {
+            if (operands[0].equals(BUFFER)) {
+                ta = startAddress;
+            }
+            else
+                ta = Tables.SYMTAB.get(parameters);
+        }
+        return ta;
     }
 
 
