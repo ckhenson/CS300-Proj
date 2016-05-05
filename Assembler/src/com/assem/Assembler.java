@@ -1,6 +1,5 @@
 package com.assem;
 
-import java.io.File;
 import java.util.Formatter;
 import java.util.Scanner;
 
@@ -84,7 +83,7 @@ public class Assembler {
 
     }
 
-
+    //Reads a line and separates out the label, opcode, and parameters
     private String[] readLine(String line) {
 
         String[] values = new String[3];
@@ -105,10 +104,17 @@ public class Assembler {
             if (s.length > 2)
                 values[2] = s[2];
         }
+        for (int i = 0; i < values.length; i++) {
+            if (values[i] != null) {
+                if (values[i].trim().startsWith("."))
+                    values[i] = null;
+            }
+        }
+
         return values;
     }
 
-
+    //Increments the LOCCTR based on the opcode
     private void incrementCounter(String op, String params) {
 
         if (op.equals("START")) {
@@ -145,12 +151,12 @@ public class Assembler {
             //if X'EF' every two digits in quotes will be a byte
             //if C'F' every digit will be a byte
             if (params.startsWith("X")) {
-                int digits = params.substring(2, op.length()).length();
+                int digits = params.substring(2, params.length()-1).length();
                 //System.out.println(digits);
                 LOCCTR += digits/2;
             }
             else if (params.startsWith("C")) {
-                int digits = params.substring(2, op.length()).length();
+                int digits = params.substring(2, params.length()-1).length();
                 //System.out.println(digits);
                 LOCCTR += digits;
             }
@@ -175,6 +181,8 @@ public class Assembler {
         return hex;
     }
 
+    //Takes the generated address, the label, the opcode, and parameters.  Then writes all of these to
+    // the intermediate file as a line
     public void writeLine(String address, String label, String opcode, String params) {
         String a;
         String l;

@@ -9,6 +9,8 @@ import java.util.Scanner;
  */
 public class Utils {
 
+    //takes a decimal value and the amount of digits desired, then it converts the decimal value to a hexadecimal
+    //value of that size
     public static String toHex(int dec, int digits) {
         String hex = Integer.toHexString(dec);
         while (hex.length() < digits)
@@ -17,6 +19,7 @@ public class Utils {
         return hex;
     }
 
+    //creates a new scanner for the given file and returns it
     public static Scanner openFile(String fileName){
         try {
             Scanner s = new Scanner(new File(fileName));
@@ -28,12 +31,14 @@ public class Utils {
         return null;
     }
 
+    //closes the designated scanner/file
     public static void closeFile(Scanner scan) {
         scan.close();
     }
 
     //Writefile functions
 
+    //takes a file name and return a formatter for that file.
     public static Formatter makeFile(String s) {
         try {
             Formatter f = new Formatter(s);
@@ -45,6 +50,7 @@ public class Utils {
         return null;
     }
 
+    //close the formatter/file
     public static void closeFormat(Formatter f) {
         f.close();
     }

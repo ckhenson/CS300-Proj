@@ -95,18 +95,6 @@ public class Tables {
         put("TIXR", "2");
     }};
 
-    //Register hash table.  It holds all the Register values.
-    public static Hashtable<String, String> REG = new Hashtable<String, String>() {{
-        put("A", "0000");
-        put("X", "0001");
-        put("L", "0010");
-        put("B", "0011");
-        put("S", "0100");
-        put("T", "0101");
-        put("F", "0110");
-        put("PC", "1000");
-        put("SW", "1001");
-    }};
 
     //Table mnemonic variables used in SIC/XE
     public static Hashtable<String, String> ARCH = new Hashtable<String, String>() {
@@ -149,7 +137,7 @@ public class Tables {
         }};
 
     //these opcodes have no corresponding object code
-    public static Hashtable<String, String> NOOBJ = new Hashtable<String, String>() {
+    public static Hashtable<String, String> NO_OBJ = new Hashtable<String, String>() {
         {
             put("START", "1");
             put("EXTDEF", "1");
@@ -163,7 +151,7 @@ public class Tables {
             put("END", "1");
         }};
 
-    //these opcodes have no corresponding object code
+    //a hashtable containing the number value of each register
     public static Hashtable<String, String> REGISTERNUMS = new Hashtable<String, String>() {
         {
             put("A", "00");

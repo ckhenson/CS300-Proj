@@ -1,12 +1,5 @@
 package com.assem;
 
-import javafx.scene.control.SpinnerValueFactory;
-import javafx.scene.control.Tab;
-
-import javax.rmi.CORBA.Util;
-import java.io.File;
-import java.lang.reflect.Array;
-import java.util.Arrays;
 import java.util.Formatter;
 import java.util.Scanner;
 
@@ -120,32 +113,40 @@ public class PassTwo {
                 targetAddress = getTargetAddress();
 
                 //Calculate the disp for PC addressing
-                if (parameters != null && e == 0 && addressingMode != IMMEDIATE) {
-                    if (Tables.SYMTAB.get(parameters) != null) {
-                        hexDisp = calculateDisp(PC, targetAddress);
+                if (Tables.NO_OBJ.get(mnemonic) == null) {
+                    if (parameters != null && e == 0 && addressingMode != IMMEDIATE) {
+                        if (Tables.SYMTAB.get(parameters) != null) {
+                            hexDisp = calculateDisp(PC, targetAddress);
+                        } else if (operands != null && addressingMode != IMMEDIATE)
+                            hexDisp = calculateOperands();
                     }
-                    else if (operands != null && addressingMode != IMMEDIATE)
-                        hexDisp = calculateOperands();
+                    else if (parameters != null && e == 1) {
+                        hexDisp = "0" + calculateDisp(PC, targetAddress);
+                    }
                 }
-                else if (parameters != null && e == 1) {
-                    hexDisp = "0" + calculateDisp(PC, targetAddress);
-                }
+
+                //Check the op to see if there are any special cases
+                opCheck(mnemonic);
 
                 //Get the third bit of the object code.  This is xbpe.
                 xbpe = x*8 + b*4 + p*2 + e;
                 String mid;
                 if (mnemonic.equals("CLEAR"))
                     mid = Tables.REGISTERNUMS.get(parameters);
+                else if (mnemonic.equals("TIXR"))
+                    mid = Tables.REGISTERNUMS.get(parameters);
                 else
                     mid = Utils.toHex(xbpe, 1);
 
                 //set the object code
-                if (Tables.NOOBJ.get(mnemonic) != null)
+                if (mnemonic.equals("BYTE"))
+                    objCode = constructVar(mnemonic);
+                else if (Tables.NO_OBJ.get(mnemonic) != null)
                     objCode = null;
                 else
                     objCode = constructCode(hexOP, mid, hexDisp, mnemonic);
 
-                writeLine(address, label, opcode, parameters, objCode);
+                writeLine(address, label, mnemonic, parameters, objCode);
 
 
             }
@@ -154,6 +155,8 @@ public class PassTwo {
         Utils.closeFormat(form);
     }
 
+    //Separates out the parameters into individual operands.  They are either separated by an arithmetic operator
+    //or by a comma.
     private static String[] separateOperands(String params) {
         String[] s;
         if (params.contains("-"))
@@ -168,6 +171,7 @@ public class PassTwo {
         return s;
     }
 
+    //Converts each symbol in the operands array into their corresponding address if they are found in the SYMTAB
     private static String[] symbolToAddress(String[] operands) {
         for (int i = 0; i < operands.length; i++) {
             if (Tables.SYMTAB.get(operands[i]) != null)
@@ -177,6 +181,7 @@ public class PassTwo {
 
     }
 
+    //Reads a line and separates it out into address, label, opcode, and parameter values
     private static String[] readLine(String line) {
 
         String[] vals = new String[4];
@@ -193,6 +198,7 @@ public class PassTwo {
         return vals;
     }
 
+    //Takes the various values and writes them out as a line in the object code file
     public static void writeLine(String address, String label, String opcode, String params, String objCode) {
         String a;
         String l;
@@ -225,6 +231,7 @@ public class PassTwo {
         form.format("%s\u0009%s\u0009%s\u0009%s\u0009%s%n", a, l, o, p, c);
     }
 
+    //constructs the different sections of the object code into a single code based on their type
     private static String constructCode(String lead, String mid, String end, String mnemonic) {
         String code = "";
         if (Tables.FORMAT.get(mnemonic) == null) {
@@ -240,6 +247,7 @@ public class PassTwo {
 
     }
 
+    //Calculates the disp address based on the current and target addresses
     private static String calculateDisp(String current, String target) {
         String disp;
         int d;
@@ -258,6 +266,7 @@ public class PassTwo {
         return disp;
     }
 
+    //Calculates the PC jump based on the current opcode.
     private static String getPC(String op, String params, String address) {
 
         int pcInt = 0;
@@ -294,11 +303,11 @@ public class PassTwo {
             //if X'EF' every two digits in quotes will be a byte
             //if C'F' every digit will be a byte
             if (params.startsWith("X")) {
-                int digits = params.substring(2, op.length()).length();
+                int digits = params.substring(2, params.length()-1).length();
                 pcInt += digits/2;
             }
             else if (params.startsWith("C")) {
-                int digits = params.substring(2, op.length()).length();
+                int digits = params.substring(2, params.length()-1).length();
                 pcInt += digits;
             }
 
@@ -307,7 +316,7 @@ public class PassTwo {
             pcInt = 0;
         }
         else if (op.equals("BASE") || op.equals("LTORG") || op.equals("EXTDEF") || op.equals("EXTREF")) {
-            //don't increment the LOCCTR
+            //don't increment the PC
         }
 
         pcInt = pcInt + addInt;
@@ -315,6 +324,7 @@ public class PassTwo {
 
     }
 
+    //Preps the front 2 digits of the object code
     private static void prepFront() {
         if (opcode != null) {
             if (opcode.startsWith("+")) {
@@ -328,7 +338,6 @@ public class PassTwo {
                     if (operands[1].equals("X")) {
                         x = 1;
                         BUFFER = operands[0];
-                        System.out.println(BUFFER);
                     }
                 }
             }
@@ -338,24 +347,28 @@ public class PassTwo {
                 decimalOP = Integer.parseInt(opcode, 16);
                 hexOP = Utils.toHex(decimalOP, 2);
             }
+            else if (opcode.equals("WORD"))
+                hexOP = "0";
             else if (Tables.OPTAB.get(opcode) != null) {
                 opcode = Tables.OPTAB.get(opcode);
                 decimalOP = Integer.parseInt(opcode, 16);
                 decimalOP += addressingMode;
                 hexOP = Utils.toHex(decimalOP, 2);
             }
-            else {
-                //opcode = Tables.MACROTAB.get(opcode);
-            }
+
         }
 
     }
 
+    //performs special functions if the parameters are immediate or indirect addressing, and then separates the operands
+    //and converts them to their corresponding addresses.
     private static void getOperands() {
         if (parameters != null) {
             if(parameters.startsWith("#")) {
                 addressingMode = IMMEDIATE;
                 parameters = parameters.substring(1);
+                if (Tables.SYMTAB.get(parameters) != null)
+                    parameters = Tables.SYMTAB.get(parameters);
                 decimalDisp = Integer.parseInt(parameters);
                 hexDisp = Utils.toHex(decimalDisp, 3);
                 p = 0;
@@ -369,6 +382,7 @@ public class PassTwo {
         }
     }
 
+    //calculates the resulting operand value if they involve an arithmetic operator.
     private static String calculateOperands() {
         int result = -1;
 
@@ -379,6 +393,7 @@ public class PassTwo {
         if (operands.length >= 3) {
             if (operands[1].equals("-")) {
                 result = Integer.parseInt(operands[0], 16) - Integer.parseInt(operands[0], 16);
+                p = 0;
             }
             else if (operands[1].equals("+")) {
                 result = Integer.parseInt(operands[0], 16) + Integer.parseInt(operands[0], 16);
@@ -388,6 +403,7 @@ public class PassTwo {
 
     }
 
+    //Calculates the target address that will be used for extended, pc, or base addressing
     private static String getTargetAddress() {
         String ta = "";
         if (parameters != null) {
@@ -398,6 +414,26 @@ public class PassTwo {
                 ta = Tables.SYMTAB.get(parameters);
         }
         return ta;
+    }
+
+    //Constructs the object code for BYTE
+    private static String constructVar(String m) {
+        String obj = "";
+        String digits = parameters.substring(2, m.length());
+        obj = digits;
+        return obj;
+    }
+
+    //Check the op and see if there are any special cases
+    private static void opCheck(String m) {
+        if (m.equals("TIXR")) {
+            hexOP = "b8";
+        }
+        else if (m.equals("RSUB")) {
+            p = 0;
+            hexDisp = "000";
+        }
+
     }
 
 
